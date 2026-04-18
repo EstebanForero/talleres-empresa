@@ -17,9 +17,10 @@ En este caso, la infraestructura no debe entenderse como servidores y microservi
 ## Objetivo del análisis
 Modelar la infraestructura lógica actual del proceso e identificar riesgos potenciales de continuidad, trazabilidad, pérdida de información y dependencia operativa.
 
-## Mapa lógico de infraestructura
+## Diagrama de infraestructura
 
-La representación visual de la arquitectura actual del proceso se encuentra en [Imagen-arquitectura.jpg](./Imagen-arquitectura.jpg). Esta imagen muestra el estado actual del flujo entre el equipo interno, OneDrive, el archivo maestro en Excel y el proveedor externo.
+<img width="1387" height="497" alt="image" src="https://github.com/user-attachments/assets/cdc25122-bf84-4607-83db-8b6bdd00d4df" />
+
 
 ### Componentes observados
 
