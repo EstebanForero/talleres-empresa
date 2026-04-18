@@ -21,7 +21,6 @@ Modelar la infraestructura lógica actual del proceso e identificar riesgos pote
 
 <img width="1387" height="497" alt="image" src="https://github.com/user-attachments/assets/cdc25122-bf84-4607-83db-8b6bdd00d4df" />
 
-
 ### Componentes observados
 
 | Capa | Componente | Función |
@@ -43,6 +42,21 @@ Modelar la infraestructura lógica actual del proceso e identificar riesgos pote
 6. Se envía el archivo final al proveedor externo.
 7. El proveedor genera encuestas y enlaces.
 8. El equipo valida manualmente los enlaces y la estructura final.
+
+## Arquitectura objetivo propuesta
+
+Como complemento al diagnostico del estado actual, se agrego un **diagrama TO-BE** con una alternativa mas simple y viable para el cliente: una arquitectura **local-first** que no requiere pagar hosting de base de datos.
+
+La idea es reemplazar el Excel maestro por una **base local ligera** en el equipo del usuario, por ejemplo **SQLite** o una alternativa similar. Los editores o supervisores accederian por medio de una aplicacion local con autenticacion, y la informacion se guardaria en un archivo de base de datos que se sincroniza constantemente con **OneDrive**.
+
+En este esquema, OneDrive no actua como motor de base de datos, sino como capa de:
+
+- sincronizacion entre equipos,
+- respaldo y redundancia,
+- historial de versiones,
+- recuperacion de archivos.
+
+Asi, el proceso mantiene una fuente mas estructurada para el banco de preguntas, pero aprovecha la infraestructura ya licenciada por la universidad. El proveedor seguiria recibiendo la salida estructurada desde esa base, sin cambiar su rol actual de generar links y reportes.
 
 ## Diagnóstico técnico
 
@@ -114,10 +128,11 @@ Modelar la infraestructura lógica actual del proceso e identificar riesgos pote
 
 ### Prioridad estructural
 - Migrar progresivamente el banco de preguntas a una base de datos o repositorio estructurado con auditoría por registro.
+- Implementar una arquitectura local-first donde la base de datos resida en el equipo del usuario y se sincronice mediante OneDrive, evitando costos de hosting dedicado.
 - Generar desde esa fuente estructurada el archivo que consume el proveedor.
 - Reemplazar parte de la validación manual por verificaciones semiautomáticas de estructura, públicos y convenciones.
 
 ## Conclusión
 La infraestructura actual funciona, pero lo hace con una dependencia fuerte de un archivo maestro, revisión humana y coordinación con un tercero. El principal problema no es de capacidad de cómputo sino de **continuidad, trazabilidad y control de cambios**.
 
-La mejora más valiosa no sería “migrar todo a la nube” ni rediseñar el proceso desde cero, sino introducir controles concretos sobre versiones, aprobación, recuperación y evidencia de envío. Eso reduce riesgo sin exigir una transformación tecnológica inmediata.
+La mejora más valiosa no sería “migrar todo a la nube” ni rediseñar el proceso desde cero, sino introducir controles concretos sobre versiones, aprobación, recuperación y evidencia de envío. En ese sentido, la arquitectura objetivo propuesta ofrece una ruta intermedia viable: una solucion estructurada, sincronizada con OneDrive y compatible con las restricciones presupuestales del cliente. Eso reduce riesgo sin exigir una transformación tecnológica inmediata.
