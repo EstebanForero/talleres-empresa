@@ -1,197 +1,189 @@
-# Taller 9 - Parte 3: Dominios de analisis de riesgos
+# Analisis de Riesgos - Taller 9
 
-- **Curso:** Arquitectura Empresarial - Universidad de La Sabana
-- **Cliente:** Direccion de Desarrollo Estrategico - Universidad de La Sabana
-- **Proceso:** Actualizacion de la Encuesta de Autoevaluacion Institucional por Programas
-- **Alcance:** analisis de riesgos del proceso interno de actualizacion del banco de preguntas, desde lineamientos CNA hasta entrega controlada al proveedor.
+## Integrantes
 
-## 1. Contexto del negocio
+- Carlos David Cruz Pavas (`CarlosDaCruz`)
+- Juan Felipe Cepeda Uribe
+- Esteban Fernando Forero Montejo (`EstebanForero`)
 
-El proceso actual transforma lineamientos del CNA en un banco de preguntas actualizado para la encuesta institucional por programas. El equipo interno compara el PDF del CNA contra un historico en Excel, identifica preguntas nuevas, modificadas o eliminadas, revisa la version consolidada y envia el resultado al proveedor externo, quien genera los enlaces de encuesta y reportes comparativos.
+## Contexto del sistema
 
-En este alcance, la Direccion de Desarrollo Estrategico no administra respuestas de encuestados ni datos personales. Por eso, el analisis se centra en riesgos de **cumplimiento funcional CNA, trazabilidad, continuidad, versionamiento, control interno y dependencia del proveedor**.
+El sistema evaluado es la aplicacion de Autoevaluacion CNA que se esta desarrollando para la Direccion de Desarrollo Estrategico de la Universidad de La Sabana. La aplicacion busca reemplazar un flujo anterior basado principalmente en archivos Excel consolidados, manejo manual de preguntas, control informal de versiones y revision externa con baja trazabilidad.
 
-## 2. Criterio de valoracion
+La solucion nueva centraliza la informacion en una base de datos local compatible con libSQL/Turso o SQLite, importa los consolidados de Excel, normaliza la jerarquia CNA, administra el banco de preguntas, conserva una linea base original, valida condiciones antes de exportar, genera instrumentos con comparacion de cambios y permite revisar entregas del proveedor por instrumento y audiencia.
 
-Se usa una escala cualitativa simple para priorizar riesgos:
+En este alcance, el cliente no administra respuestas de encuestados ni datos personales. Por tanto, el analisis se concentra en riesgos de integridad, trazabilidad, continuidad, versionamiento, control operativo, arquitectura local y entrega al proveedor.
+
+## Criterio de valoracion
 
 | Nivel | Probabilidad | Impacto |
 |------|--------------|---------|
-| Bajo | Poco probable o controlado por practicas actuales | Afecta parcialmente el trabajo, con correccion simple |
+| Bajo | Poco probable o controlado por practicas actuales | Afecta parcialmente el trabajo y se corrige con esfuerzo bajo |
 | Medio | Puede ocurrir durante el ciclo normal del proceso | Genera reproceso, retrasos o perdida parcial de evidencia |
-| Alto | Es plausible por la forma actual de trabajo | Afecta validez de la encuesta, trazabilidad o continuidad |
+| Alto | Es plausible por la forma actual de trabajo | Afecta validez de la encuesta, trazabilidad, continuidad o confianza |
+| Critico | Puede comprometer el estado completo del banco o la version oficial | Interrumpe el proceso o invalida entregas relevantes |
 
-El nivel de riesgo se estima combinando probabilidad e impacto:
+## Dominios de analisis de riesgos
 
-| Probabilidad / Impacto | Bajo | Medio | Alto |
-|------------------------|------|-------|------|
-| Baja | Bajo | Bajo | Medio |
-| Media | Bajo | Medio | Alto |
-| Alta | Medio | Alto | Critico |
+### 1. Datos y modelo CNA
 
-## 3. Dominios de analisis de riesgos
+**Pregunta guia:** ¿La informacion del CNA y del banco de preguntas queda representada de forma consistente?
 
-### Dominio 1. Cumplimiento funcional CNA
+El riesgo principal es que preguntas, factores, caracteristicas o aspectos se dupliquen, se importen incompletos o queden mal normalizados desde Excel. La solucion nueva reduce este riesgo al usar base de datos, reglas de unicidad y normalizacion de jerarquia CNA, pero requiere validaciones de importacion y revision de los casos ambiguos.
 
-**Pregunta guia:** ¿El proceso garantiza que los lineamientos CNA se traduzcan correctamente en preguntas?
+### 2. Trazabilidad y baseline
 
-Respuesta: parcialmente. La fuente normativa esta clara, pero la comparacion entre PDF y Excel es manual. Esto permite revisar con criterio humano, pero tambien abre espacio a omisiones, interpretaciones inconsistentes o cambios no documentados.
+**Pregunta guia:** ¿Se puede saber que cambio frente a la version original?
 
-**Riesgo principal:** que una exigencia del CNA no quede reflejada correctamente en el banco de preguntas.
+La trazabilidad era debil en el proceso anterior porque dependia de nombres de archivo, colores manuales y memoria del equipo. En el TO-BE, la linea base original, los hashes y los snapshots permiten comparar cambios y generar instrumentos con diferencias. El riesgo nuevo es fijar una baseline incorrecta o restaurar un snapshot equivocado.
 
-**Impacto:** encuesta incompleta, perdida de alineacion con criterios de acreditacion y dificultad para justificar el instrumento final.
+### 3. Operacion e importacion
 
-**Controles esperados:** matriz de trazabilidad CNA-pregunta, revision por pares y evidencia de aprobacion de cambios.
+**Pregunta guia:** ¿El sistema evita errores al importar y preparar instrumentos?
 
-### Dominio 2. Informacion y trazabilidad
+La importacion desde Excel sigue siendo una frontera critica. Formatos distintos, celdas combinadas, columnas faltantes o jerarquias incompletas pueden contaminar la base desde el inicio. Por eso se necesitan validaciones bloqueantes, forward-fill controlado, reporte de inconsistencias y pruebas con archivos de muestra.
 
-**Pregunta guia:** ¿Se puede reconstruir que cambio, quien lo hizo, cuando y por que?
+### 4. Persistencia y disponibilidad
 
-Respuesta: hoy la trazabilidad depende de marcas manuales, convenciones de color y versiones de archivo. Esto ayuda durante el trabajo operativo, pero no constituye una bitacora suficientemente auditable por pregunta.
+**Pregunta guia:** ¿La base local puede recuperarse si falla el equipo, el archivo o la sincronizacion?
 
-**Riesgo principal:** perdida de evidencia sobre cambios entre periodos.
+La base local mejora el control frente a multiples Excel, pero tambien concentra el estado editable. Si se corrompe o se pierde, afecta preguntas, lineamientos, baseline, snapshots y revisiones. La mitigacion debe combinar respaldos completos, snapshots por hito, sincronizacion controlada y pruebas de restauracion.
 
-**Impacto:** dificultad para comparar versiones, explicar decisiones y responder ante revisiones internas.
+### 5. Seguridad y accesos locales
 
-**Controles esperados:** bitacora formal de cambios, identificador de version, responsable, fecha, motivo y estado de aprobacion.
+**Pregunta guia:** ¿Esta claro quien puede editar, revisar, aprobar o restaurar informacion?
 
-### Dominio 3. Operacion y dependencia manual
+La aplicacion debe autenticar usuarios y evitar que varias personas trabajen con perfiles compartidos o permisos excesivos sobre la carpeta local o sincronizada. La mitigacion incluye perfil de editor, carpeta controlada, permisos minimos, revision de accesos y confirmaciones reforzadas para operaciones destructivas.
 
-**Pregunta guia:** ¿El proceso depende excesivamente de trabajo manual o conocimiento tacito?
+### 6. Exportacion y revision del proveedor
 
-Respuesta: si. La comparacion PDF contra historico, la consolidacion y la verificacion de enlaces se realizan manualmente. El proceso depende de pocas personas que conocen el detalle de la encuesta y sus convenciones.
+**Pregunta guia:** ¿La salida entregada al proveedor coincide con la version aprobada?
 
-**Riesgo principal:** errores por omision, cansancio, interpretacion o ausencia de responsables clave.
+El proceso anterior permitia entregar instrumentos desde archivos editados manualmente. La solucion nueva debe generar exportaciones desde la base y bloquear entregas incompletas. Tambien debe registrar la revision del proveedor por instrumento/audiencia, con estado, observacion y evidencia.
 
-**Impacto:** retrasos, reproceso y menor confiabilidad del resultado.
+### 7. Sincronizacion cloud y continuidad
 
-**Controles esperados:** checklist operativo, roles definidos, revision cruzada y apoyo progresivo de una aplicacion estructurada.
+**Pregunta guia:** ¿OneDrive o Microsoft Graph reducen riesgo sin crear nuevos problemas?
 
-### Dominio 4. Tecnologia e infraestructura
+La sincronizacion en la nube aporta respaldo, redundancia e historial, pero puede crear riesgos de conflicto, exposicion accidental o subida de temporales. La mitigacion es definir una carpeta de sincronizacion, permisos claros, exclusiones de temporales, backups completos y procedimiento de recuperacion.
 
-**Pregunta guia:** ¿La infraestructura actual soporta continuidad, recuperacion y control de versiones?
+## Riesgos de la aplicacion anterior
 
-Respuesta: parcialmente. OneDrive ofrece sincronizacion e historial de versiones, pero el proceso sigue concentrado en un archivo Excel maestro. La arquitectura TO-BE propone una aplicacion local con base de datos ligera, como SQLite o Turso/libSQL local, sincronizada por OneDrive para evitar costos de hosting.
+En la aplicacion o proceso anterior, el mayor problema no era solo tecnico. El riesgo principal era que la informacion dependia demasiado de archivos editados manualmente, criterios operativos poco controlados y conocimiento de personas especificas. Esto generaba errores dificiles de detectar, duplicados, perdida de trazabilidad y poca confianza al momento de entregar instrumentos o revisar cambios.
 
-**Riesgo principal:** corrupcion, sobrescritura o confusion de versiones del archivo principal.
+| Riesgo | Causa | Impacto | Probabilidad | Arquitectura afectada | Mitigacion propuesta |
+|--------|-------|---------|--------------|------------------------|----------------------|
+| Dependencia de Excel manuales | Los consolidados se editan directamente en archivos y no desde una fuente unica de verdad | Alto | Alta | Datos / Procesos | Centralizar el banco de preguntas en base de datos y generar exportaciones desde el sistema |
+| Duplicidad de preguntas | No hay una regla tecnica fuerte que impida repetir codigos o preguntas similares | Alto | Alta | Datos | Usar unicidad por codigo de pregunta y validaciones antes de importar o exportar |
+| Duplicidad de lineamientos | La jerarquia CNA puede repetirse por errores de copia, celdas combinadas o diligenciamiento incompleto | Alto | Alta | Datos / Modelo CNA | Normalizar Factor, Caracteristica y Aspecto; deduplicar por alcance y codigos CNA |
+| Perdida de trazabilidad de cambios | Los archivos se modifican y circulan sin una linea base inmutable | Alto | Alta | Procesos / Gobierno TI | Definir una linea base original y comparar los cambios contra esa version |
+| Versiones inconsistentes de instrumentos | Diferentes personas pueden trabajar sobre copias distintas del consolidado | Alto | Media | Procesos / Exportacion | Generar instrumentos desde la base de datos y no desde archivos editados manualmente |
+| Errores por jerarquia CNA incompleta | Las celdas de Factor, Caracteristica o Aspecto pueden venir vacias por formato de Excel | Medio | Alta | Importacion / Datos | Aplicar forward-fill controlado durante la importacion |
+| Falta de validacion antes de entrega | El proceso anterior puede permitir entregar instrumentos incompletos o inconsistentes | Alto | Media | Validacion / Proveedor | Crear reglas bloqueantes antes de exportar o entregar al proveedor |
+| Baja auditoria de revision del proveedor | Las correcciones del proveedor se revisan sin estado formal por pregunta | Medio | Media | Provider Review / Gobierno | Registrar revision por instrumento, estado, observacion y evidencia |
+| Perdida de evidencia de revision | Las evidencias pueden quedar en correos, carpetas sueltas o rutas no estandarizadas | Medio | Media | Procesos / Documentacion | Adjuntar rutas o imagenes locales en la revision y exportar reporte DOCX |
+| Dependencia de personas clave | El criterio de que archivo es el correcto o que cambios se hicieron vive en la memoria del equipo | Alto | Media | Gobierno TI | Documentar reglas, snapshots, baseline y flujo de confirmacion reforzada |
+| Falta de recuperacion ante errores | Si se dana un archivo o se elimina informacion, no hay snapshots consistentes del estado editable | Alto | Media | Persistencia / Continuidad | Crear historial automatico y snapshots manuales persistentes |
+| Riesgo de datos no cifrados o mal protegidos | Los Excel pueden circular por carpetas compartidas sin controles suficientes | Alto | Media | Seguridad / Datos | Limitar la operacion a repositorio local controlado y definir respaldos seguros |
 
-**Impacto:** interrupcion del proceso, perdida de trabajo y dificultad para identificar la version oficial.
+## Riesgos de la solucion nueva en desarrollo
 
-**Controles esperados:** snapshots de versiones aprobadas, carpeta controlada, convencion de estados y procedimiento de recuperacion.
+La solucion nueva reduce varios riesgos del proceso anterior porque introduce base de datos, reglas de unicidad, linea base original, validaciones y exportaciones controladas. Aun asi, tambien aparecen nuevos riesgos propios de una aplicacion local con persistencia, importacion de archivos, generacion de documentos y sincronizacion con OneDrive/Microsoft Graph.
 
-### Dominio 5. Accesos y segregacion de roles
+| Riesgo | Causa | Impacto | Probabilidad | Arquitectura afectada | Mitigacion propuesta |
+|--------|-------|---------|--------------|------------------------|----------------------|
+| Base de datos local como punto unico de falla | La informacion editable queda concentrada en una base local libSQL/SQLite | Critico | Media | Persistencia / Disponibilidad | Implementar respaldos frecuentes, snapshots manuales y sincronizacion controlada con carpeta de respaldo |
+| Corrupcion o perdida de la base de datos | Fallos del equipo, cierre inesperado o sincronizacion incorrecta | Critico | Media | Persistencia | Mantener backups antes de fijar baseline y antes de restaurar snapshots |
+| Baseline fijada por error | Un usuario podria marcar como original un contenido incorrecto | Alto | Baja | Original Baseline / Gobierno | Mantener confirmacion reforzada con texto `FIJAR ORIGINAL`, acknowledgement de reemplazo, backup y perfil guardado |
+| Importacion incorrecta de Excel | Estructuras de archivo no esperadas, celdas vacias o formatos cambiantes | Alto | Media | Import / Datos | Validar columnas requeridas, forward-fill controlado, pruebas con workbook de muestra y reporte de inconsistencias |
+| Deduplicacion agresiva | La normalizacion podria unir lineamientos que parecen iguales pero representan casos distintos | Medio | Media | CNA Model / Import | Revisar claves de unicidad por scope, factor, caracteristica y aspecto; dejar trazabilidad de registros omitidos |
+| Codigos de aspecto generados incorrectamente | Aspectos manuales dependen de claves deterministicas generadas | Medio | Media | CNA Model | Usar generacion estable basada en factor, caracteristica y descripcion; permitir revision visual del resultado |
+| Exportaciones con colores incorrectos | La comparacion por codigo y hash podria clasificar mal cambios si el baseline esta mal fijado | Alto | Media | Export / Original Baseline | Bloquear exportacion sin baseline y mostrar resumen de diferencias antes de generar archivos |
+| Restauracion de snapshot equivocada | Restaurar reemplaza preguntas y lineamientos actuales | Alto | Baja | History / Persistencia | Usar confirmacion reforzada, mostrar fecha, autor y alcance del snapshot antes de restaurar |
+| Historial incompleto como backup total | El snapshot no guarda todas las tablas auxiliares de la base | Medio | Media | History / Persistencia | Comunicar que snapshots cubren estado editable; mantener backup completo de base para recuperacion total |
+| Falta de monitoreo operativo | Al ser aplicacion local, puede no haber observabilidad centralizada | Medio | Media | Disponibilidad / Soporte | Registrar errores de importacion, exportacion y repositorio; agregar logs locales consultables |
+| Accesos locales no controlados | Si varias personas usan el mismo equipo o carpeta, pueden modificar informacion sin control | Alto | Media | Seguridad / Workspace | Guardar perfil de editor, controlar ubicacion de base, restringir permisos de carpeta y evitar usuarios compartidos |
+| Exposicion por sincronizacion cloud | OneDrive o Microsoft Graph pueden sincronizar archivos sensibles o versiones intermedias | Alto | Media | Workspace / Seguridad | Definir carpeta de sincronizacion, evitar subir temporales sensibles y documentar permisos de Microsoft Graph |
+| Evidencias no soportadas en DOCX | Algunos archivos adjuntos no se incrustan y solo quedan como ruta | Bajo | Media | Provider Review / Export | Mantener lista de formatos soportados y conservar rutas para formatos no embebibles |
+| Dependencia de convenciones importadas | Codigos de audiencia, formatos o convenciones pueden variar entre consolidados | Medio | Media | Question Bank / Export | Generar hoja de Convencion y normalizar codigos durante importacion |
+| Complejidad de modulos de persistencia | La separacion en schema, parsing, helpers, snapshots y reviews puede dificultar mantenimiento | Medio | Media | Persistencia / Gobierno TI | Mantener responsabilidades documentadas y pruebas por modulo de repositorio |
 
-**Pregunta guia:** ¿Esta claro quien puede editar, revisar, aprobar y consultar?
+## Analisis capa por capa de la solucion TO-BE
 
-Respuesta: parcialmente. Hay participacion de analista y supervisor, pero no se evidencia una matriz formal de roles ni permisos. En el TO-BE, la aplicacion deberia autenticar usuarios y separar capacidades de edicion y aprobacion.
+| Capa | Funcion en la solucion | Riesgos principales | Controles y mitigacion |
+|------|------------------------|---------------------|------------------------|
+| Aplicacion local | Facilita edicion, importacion, revision, snapshots y exportacion | Fallos de validacion, uso incorrecto, errores silenciosos | Validaciones bloqueantes, logs locales, mensajes claros, pruebas por flujo |
+| Autenticacion y perfil | Identifica editor o supervisor responsable de acciones | Usuarios compartidos o acciones sin responsable claro | Perfil guardado, roles, confirmaciones reforzadas y registro de autor |
+| Importacion Excel | Convierte consolidados en estructura normalizada | Columnas faltantes, jerarquia incompleta, duplicados | Validar schema, forward-fill controlado, reporte de inconsistencias |
+| Modelo CNA | Normaliza Factor, Caracteristica, Aspecto y preguntas | Deduplicacion incorrecta o codigos mal generados | Claves estables, revision visual, trazabilidad de registros omitidos |
+| Baseline original | Define referencia para comparar cambios | Fijar una version equivocada | Confirmacion `FIJAR ORIGINAL`, backup previo y bloqueo de exportacion sin baseline |
+| Base local libSQL/SQLite | Guarda estado editable, lineamientos y revisiones | Punto unico de falla, corrupcion o perdida | Backups completos, snapshots, integridad transaccional y pruebas de restauracion |
+| Sincronizacion OneDrive | Aporta redundancia y recuperacion en la nube | Conflictos, exposicion accidental, temporales sincronizados | Carpeta definida, permisos minimos, reglas de sincronizacion y exclusion de temporales |
+| Exportacion | Genera instrumentos y reportes desde la base | Exportar version no aprobada o clasificar mal cambios | Validaciones previas, resumen de diferencias, version identificable |
+| Revision del proveedor | Registra estado, evidencia y observaciones por entrega | Evidencia dispersa o formatos no soportados | Checklist por instrumento/audiencia, rutas estandarizadas, reporte DOCX |
 
-**Riesgo principal:** modificaciones no autorizadas o aprobaciones sin independencia suficiente.
+## Comparacion AS-IS vs TO-BE
 
-**Impacto:** perdida de control interno y baja confianza en la version aprobada.
+| Dimension | Aplicacion anterior / AS-IS | Solucion nueva / TO-BE |
+|-----------|-----------------------------|-------------------------|
+| Fuente de verdad | Archivos Excel editados manualmente | Base de datos local con banco de preguntas editable |
+| Control de cambios | Revision manual entre versiones | Baseline original con hashes y colores de diferencia |
+| Duplicados | Alta probabilidad por copia y consolidacion manual | Indices unicos para preguntas y lineamientos |
+| Trazabilidad | Baja, depende de nombres de archivo y memoria del equipo | Snapshots, baseline, estados de revision y reportes |
+| Validacion | Manual y tardia | Reglas bloqueantes antes de exportar o entregar |
+| Revision del proveedor | Informal o dispersa | Checklist por instrumento/audiencia con evidencia |
+| Disponibilidad | Depende del archivo correcto y de quien lo tenga | Depende de la base local, respaldos y sincronizacion |
+| Seguridad | Riesgo por archivos circulando en carpetas o correos | Riesgo controlable con permisos locales, perfil y carpeta definida |
+| Gobierno TI | Decisiones poco documentadas | Reglas explicitas para baseline, importacion, exportacion e historial |
 
-**Controles esperados:** matriz RACI, permisos minimos, autenticacion en la aplicacion y revision periodica de accesos.
+## Riesgos priorizados
 
-### Dominio 6. Proveedor externo
+| Prioridad | Riesgo | Razon |
+|-----------|--------|-------|
+| 1 | Perdida o corrupcion de la base de datos local | Afectaria todo el banco de preguntas, baseline, lineamientos y revisiones |
+| 2 | Baseline fijada incorrectamente | Todas las exportaciones con colores dependerian de una referencia equivocada |
+| 3 | Importacion incorrecta del consolidado | Puede crear preguntas o lineamientos mal normalizados desde el inicio del ciclo |
+| 4 | Acceso local o sincronizacion cloud sin control | Puede exponer informacion academica, evidencias o instrumentos de evaluacion |
+| 5 | Restauracion equivocada de snapshot | Puede reemplazar el estado actual y generar perdida operativa |
 
-**Pregunta guia:** ¿La entrega al proveedor y la salida recibida estan controladas?
-
-Respuesta: parcialmente. El proveedor recibe el archivo aprobado y genera links y reportes, pero el control de version, criterios de aceptacion y evidencia de correcciones no estan plenamente formalizados.
-
-**Riesgo principal:** que el proveedor configure una encuesta distinta a la version aprobada o que los ajustes no queden trazados.
-
-**Impacto:** enlaces incorrectos, retrabajo y retraso en la aplicacion de la encuesta.
-
-**Controles esperados:** entrega versionada, acta o evidencia de envio, checklist de recepcion, registro de correcciones y validacion contra la version aprobada.
-
-### Dominio 7. Continuidad del proceso
-
-**Pregunta guia:** ¿Existe una ruta clara si el archivo, OneDrive o el proveedor fallan?
-
-Respuesta: no de forma suficiente. OneDrive reduce parte del riesgo tecnico, pero no reemplaza un procedimiento formal de continuidad. Tampoco se evidencia una ruta alterna si el proveedor se retrasa o falla.
-
-**Riesgo principal:** interrupcion del ciclo de actualizacion por perdida de archivo, conflicto de sincronizacion o indisponibilidad del proveedor.
-
-**Impacto:** retrasos en el proceso institucional y dependencia de soluciones improvisadas.
-
-**Controles esperados:** procedimiento de recuperacion, backups por hito aprobado, responsable de contingencia y canal alterno con el proveedor.
-
-## 4. Matriz de riesgos
-
-| ID | Dominio | Riesgo | Causa principal | Probabilidad | Impacto | Nivel | Controles recomendados |
-|----|---------|--------|-----------------|--------------|---------|-------|------------------------|
-| R1 | Cumplimiento funcional CNA | Omision o mala interpretacion de un aspecto CNA | Comparacion manual PDF vs historico | Media | Alto | Alto | Matriz CNA-pregunta, revision por pares, evidencia de aprobacion |
-| R2 | Informacion y trazabilidad | No poder demostrar que cambio entre periodos | Bitacora informal y marcas manuales en Excel | Alta | Alto | Critico | Bitacora por pregunta, responsable, fecha, motivo y version |
-| R3 | Operacion manual | Error humano durante consolidacion o validacion | Trabajo repetitivo y dependencia de pocas personas | Alta | Medio | Alto | Checklist, revision cruzada, roles claros, validaciones semiautomaticas |
-| R4 | Tecnologia e infraestructura | Perdida, corrupcion o confusion de version oficial | Archivo maestro compartido y sincronizacion continua | Media | Alto | Alto | Snapshots aprobados, versionado formal, procedimiento de recuperacion |
-| R5 | Accesos y roles | Cambios no autorizados o aprobacion sin segregacion | Permisos y responsabilidades no formalizados | Media | Medio | Medio | Matriz RACI, permisos minimos, autenticacion y revision de accesos |
-| R6 | Proveedor externo | Encuesta publicada no coincide con version aprobada | Handoff poco formal y validacion manual | Media | Alto | Alto | Entrega versionada, checklist de aceptacion, registro de correcciones |
-| R7 | Continuidad | Retraso por falla de OneDrive, archivo o proveedor | Ausencia de plan de contingencia formal | Media | Alto | Alto | Backups por hito, ruta de recuperacion, canal alterno con proveedor |
-| R8 | Arquitectura TO-BE | Conflictos de sincronizacion del archivo de base local | Uso simultaneo de archivo SQLite/Turso sincronizado por OneDrive | Media | Medio | Medio | Reglas de edicion, bloqueo logico, snapshots y validacion de integridad |
-
-## 5. Analisis de riesgos de la arquitectura TO-BE
-
-La arquitectura propuesta busca reducir el riesgo operativo del estado actual mediante una aplicacion local que facilite la edicion del banco de preguntas, registre cambios de forma mas trazable y sincronice el archivo de base de datos por OneDrive. Esto mejora el control frente al Excel maestro, pero introduce riesgos propios que deben gestionarse desde el diseno.
-
-### Analisis por capas
-
-| Capa | Funcion en la solucion | Riesgos principales | Mitigacion propuesta |
-|------|------------------------|---------------------|----------------------|
-| Usuario y acceso | Editores y supervisores ingresan a la app para consultar, editar o aprobar informacion | Uso de credenciales compartidas, permisos excesivos, aprobaciones sin separacion real | Autenticacion por usuario, roles editor/revisor/aprobador, MFA institucional si aplica, matriz RACI |
-| Aplicacion local | Interfaz para editar preguntas, registrar cambios y generar salidas | Errores de validacion, fallas de la app, cambios incompletos o sin guardar | Validaciones obligatorias, mensajes de error claros, autoguardado controlado, pruebas antes de cada ciclo |
-| Base de datos local | Repositorio estructurado del banco de preguntas, posiblemente SQLite o Turso/libSQL local | Corrupcion del archivo, bloqueo por uso concurrente, perdida de integridad referencial | Transacciones, validacion de integridad, backups antes de cambios masivos, reglas de edicion simultanea |
-| Sincronizacion OneDrive | Replica el archivo de base de datos y conserva historial en la nube institucional | Conflictos de sincronizacion, version antigua sobrescribiendo version nueva, indisponibilidad temporal | Carpeta unica controlada, sincronizacion verificada antes y despues de editar, snapshots aprobados, procedimiento de restauracion |
-| Trazabilidad y versionado | Permite saber que cambio, quien lo hizo, cuando y por que | Bitacora incompleta, cambios directos al archivo sin pasar por la app | Bitacora obligatoria en la app, bloqueo de edicion manual del archivo, estados de version: borrador, revision, aprobado, enviado |
-| Exportacion al proveedor | Genera el archivo o paquete que consume el proveedor | Exportar una version no aprobada o con estructura incorrecta | Exportacion solo desde versiones aprobadas, identificador de version, checklist de envio, validacion contra plantilla esperada |
-| Recuperacion y continuidad | Permite volver a una version aprobada si hay perdida o corrupcion | Recuperar una version equivocada o no saber cual era la ultima aprobada | Snapshots con nombre estandar, responsable de restauracion, prueba periodica de recuperacion |
-
-### Riesgos especificos del TO-BE
-
-| ID | Riesgo TO-BE | Impacto | Mitigacion |
-|----|--------------|---------|------------|
-| TB1 | Conflicto de sincronizacion del archivo de base local | Puede duplicar versiones o dejar inconsistencias entre usuarios | Definir reglas de uso, evitar edicion simultanea no controlada, revisar estado de OneDrive antes de abrir la app |
-| TB2 | Corrupcion del archivo SQLite/Turso local | Puede bloquear el acceso al banco de preguntas | Backups automaticos por hito, snapshots aprobados, verificacion de integridad al iniciar la app |
-| TB3 | Usuarios editan por fuera de la aplicacion | Se pierde trazabilidad y control de validaciones | Guardar el archivo en carpeta restringida, permisos minimos, uso obligatorio de la app |
-| TB4 | Exportacion de una version no aprobada | El proveedor podria construir una encuesta incorrecta | Bloquear exportacion si la version no esta aprobada, incluir ID de version en el archivo enviado |
-| TB5 | Fallo de autenticacion o permisos mal configurados | Usuarios pueden ver o modificar mas de lo necesario | Roles claros, revision periodica de accesos, separacion editor/aprobador |
-| TB6 | Dependencia de OneDrive para sincronizacion | Trabajo retrasado si hay conflictos o indisponibilidad | Modo local temporal, procedimiento de sincronizacion posterior, canal de recuperacion desde historial |
-
-### Plan de mitigacion
+## Plan de mitigacion
 
 | Fase | Accion | Riesgo que reduce | Responsable sugerido |
 |------|--------|-------------------|----------------------|
-| Diseno | Definir roles, estados de version y flujo minimo de aprobacion | TB3, TB4, TB5 | Supervisor del proceso |
-| Implementacion | Agregar bitacora obligatoria y validaciones de estructura en la app | R2, R3, TB3 | Equipo tecnico / analista responsable |
-| Sincronizacion | Ubicar la base en carpeta OneDrive controlada y documentar reglas de uso | R4, R7, TB1, TB6 | Analista responsable |
-| Respaldo | Crear snapshots automaticos o manuales por version aprobada | R4, R7, TB2 | Analista responsable |
-| Entrega | Generar exportes solo desde versiones aprobadas con identificador unico | R6, TB4 | Analista y supervisor |
-| Verificacion | Probar restauracion, exportacion y validacion antes de cada ciclo CNA | R1, R4, R6, TB2 | Supervisor del proceso |
+| Preparacion | Documentar donde vive la base local, que carpeta se sincroniza y quien tiene acceso | Acceso local sin control, confusion de versiones | Supervisor del proceso |
+| Importacion | Validar columnas, jerarquia CNA, duplicados y conteo de preguntas antes de aceptar el archivo | Importacion incorrecta, duplicidad, jerarquia incompleta | Analista responsable |
+| Baseline | Mantener confirmacion reforzada, backup previo y perfil de quien fija la linea base | Baseline incorrecta, perdida de referencia | Supervisor del proceso |
+| Persistencia | Crear respaldos completos antes de fijar baseline, restaurar snapshots o ejecutar cambios masivos | Corrupcion o perdida de base | Analista responsable |
+| Exportacion | Bloquear exportacion sin baseline y mostrar resumen de diferencias antes de generar instrumentos | Exportaciones incorrectas | Aplicacion / analista |
+| Revision proveedor | Registrar estado, observacion y evidencia por instrumento/audiencia | Baja auditoria de revision | Analista y supervisor |
+| Operacion | Agregar logs locales para importacion, exportacion, restauracion y errores de repositorio | Falta de monitoreo operativo | Equipo tecnico |
+| Seguridad | Revisar permisos de OneDrive y Microsoft Graph; evitar subir temporales sensibles | Exposicion por sincronizacion cloud | Responsable TI / equipo interno |
+| Calidad | Mantener pruebas automaticas de importacion, deduplicacion, baseline y exportacion | Regresiones tecnicas | Equipo tecnico |
 
-## 6. Riesgos prioritarios
-
-Los riesgos mas importantes para el negocio son:
-
-1. **R2 - Perdida de trazabilidad entre periodos.** Es critico porque afecta la capacidad de justificar cambios y mantener comparabilidad historica.
-2. **R1 - Omision o mala interpretacion de aspectos CNA.** Afecta directamente la validez funcional de la encuesta.
-3. **R6 - Diferencia entre version aprobada y salida del proveedor.** Puede generar links incorrectos, retrabajo y retrasos.
-4. **R4 - Confusion o perdida de la version oficial.** Compromete continuidad y evidencia del proceso.
-5. **TB1 - Conflictos de sincronizacion en la arquitectura TO-BE.** Es un riesgo nuevo de la solucion local-first y debe controlarse con reglas de uso y snapshots.
-
-## 7. Respuestas a las preguntas guia
+## Respuestas a las preguntas guia
 
 | Pregunta guia | Respuesta aplicada al negocio |
 |---------------|-------------------------------|
-| ¿Que activos son mas criticos? | Lineamientos CNA, banco historico de preguntas, version aprobada, evidencia de cambios, links y reportes del proveedor |
-| ¿Que puede salir mal? | Omisiones CNA, cambios no trazados, version equivocada, perdida de archivo, fallas de sincronizacion o salida incorrecta del proveedor |
-| ¿Que tan probable es? | Medio a alto, porque el proceso actual depende de comparacion manual, Excel compartido y coordinacion con un tercero |
-| ¿Cual seria el impacto? | Alto si afecta validez de la encuesta, comparabilidad historica, continuidad o confianza en la version aprobada |
-| ¿Que controles existen hoy? | Revision humana, uso de OneDrive, Excel historico, validacion manual de links y comunicacion con proveedor |
-| ¿Que controles faltan? | Bitacora formal, versionado por estados, matriz RACI, snapshots aprobados, checklist de proveedor y plan de recuperacion |
-| ¿Quien debe gestionar el riesgo? | El analista responsable y supervisor del proceso, con apoyo del proveedor para riesgos de configuracion y entrega |
+| ¿Que activos son mas criticos? | Base local, baseline original, banco de preguntas, jerarquia CNA, snapshots, exportaciones, evidencias de revision y reportes del proveedor |
+| ¿Que puede salir mal? | Importacion incorrecta, baseline mal fijada, duplicados, perdida de base, snapshot equivocado, exportacion con diferencias mal clasificadas o sincronizacion insegura |
+| ¿Que tan probable es? | Medio a alto para errores de importacion y operacion; medio para corrupcion o sincronizacion; bajo a medio para baseline incorrecta si existe confirmacion reforzada |
+| ¿Cual seria el impacto? | Alto o critico si afecta la base local, la linea base, la trazabilidad o la version enviada al proveedor |
+| ¿Que controles existen o estan propuestos? | Base local, reglas de unicidad, baseline, snapshots, validaciones antes de exportar, revision del proveedor y sincronizacion con OneDrive |
+| ¿Que controles faltan o deben reforzarse? | Backups completos, logs locales, pruebas automaticas, permisos de carpeta, reglas de sincronizacion y documentacion operativa |
+| ¿Quien debe gestionar el riesgo? | Analista responsable, supervisor del proceso y equipo tecnico que mantiene la aplicacion |
 
-## 8. Conclusiones
+## Recomendaciones
 
-El riesgo principal del proceso no esta en el tratamiento de datos personales, porque ese no hace parte del alcance interno confirmado. El riesgo central esta en construir una encuesta que no pueda demostrarse como fiel a los lineamientos CNA o que pierda trazabilidad entre periodos.
+- Mantener respaldos completos de la base antes de fijar o reemplazar la linea base original.
+- Documentar claramente donde vive la base local, que carpeta se sincroniza y quien tiene acceso.
+- Conservar la confirmacion reforzada para operaciones destructivas o de alto impacto.
+- Agregar logs locales para importacion, exportacion, restauracion de snapshots y errores de repositorio.
+- Probar cada importacion con validaciones de duplicados, jerarquia CNA y conteo de preguntas antes de permitir exportar.
+- Revisar periodicamente los permisos de OneDrive y Microsoft Graph para evitar exposicion accidental.
+- Mantener pruebas automaticas de importacion, deduplicacion, comparacion contra baseline y exportacion de instrumentos.
 
-La arquitectura objetivo con aplicacion local y base sincronizada por OneDrive reduce riesgos actuales porque facilita la edicion, estructura mejor el banco de preguntas y mejora la trazabilidad. Sin embargo, no elimina la necesidad de controles: debe incluir autenticacion, roles, bitacora obligatoria, estados de version, snapshots y reglas claras para evitar conflictos de sincronizacion.
+## Conclusion
 
-El plan de mitigacion debe tratar la solucion TO-BE como una mejora controlada: no basta con cambiar Excel por una base local. La aplicacion debe asegurar que los cambios queden registrados, que solo se exporten versiones aprobadas y que exista una forma clara de recuperar una version valida si OneDrive o el archivo local presentan problemas.
+El proceso anterior concentra riesgos en el trabajo manual con Excel, la falta de trazabilidad y la dependencia de personas. La solucion nueva corrige buena parte de esos problemas al mover la operacion hacia una base de datos, baseline inmutable, validaciones y exportaciones generadas desde el sistema.
+
+Sin embargo, la nueva arquitectura tambien necesita controles propios: respaldos, gobierno de baseline, permisos locales, cuidado con sincronizacion cloud y pruebas de importacion/exportacion. El riesgo principal cambia de "no saber cual archivo es el correcto" a "proteger bien la base y las reglas que gobiernan el ciclo de autoevaluacion".
