@@ -41,7 +41,7 @@ La trazabilidad era debil en el proceso anterior porque dependia de nombres de a
 
 **Pregunta guia:** ¿El sistema evita errores al importar y preparar instrumentos?
 
-La importacion desde Excel sigue siendo una frontera critica. Formatos distintos, celdas combinadas, columnas faltantes o jerarquias incompletas pueden contaminar la base desde el inicio. Por eso se necesitan validaciones bloqueantes, forward-fill controlado, reporte de inconsistencias y pruebas con archivos de muestra.
+La importacion desde Excel ya no se considera un riesgo principal de negocio si la aplicacion valida columnas, duplicados, jerarquia CNA y conteo de preguntas antes de aceptar el archivo. Puede tener impacto alto si falla, pero su probabilidad esperada es baja porque se controla con pruebas, validaciones bloqueantes y reportes de inconsistencias.
 
 ### 4. Persistencia y disponibilidad
 
@@ -86,15 +86,13 @@ En la aplicacion o proceso anterior, el mayor problema no era solo tecnico. El r
 | Falta de recuperacion ante errores | Si se dana un archivo o se elimina informacion, no hay snapshots consistentes del estado editable | Alto | Media | Persistencia / Continuidad | Crear historial automatico y snapshots manuales persistentes |
 | Riesgo de datos no cifrados o mal protegidos | Los Excel pueden circular por carpetas compartidas sin controles suficientes | Alto | Media | Seguridad / Datos | Limitar la operacion a repositorio local controlado y definir respaldos seguros |
 
-## Riesgos de la solucion nueva en desarrollo
+## Riesgos residuales de la solucion nueva en desarrollo
 
-La solucion nueva reduce la mayoria de riesgos del proceso anterior porque introduce base de datos, reglas de unicidad, linea base original, validaciones, exportaciones controladas y sincronizacion en linea con Turso DB. Por eso, los riesgos nuevos son menos numerosos y se concentran en puntos de gobierno tecnico: importacion, baseline, sincronizacion y permisos.
+La solucion nueva reduce la mayoria de riesgos del proceso anterior porque introduce base de datos, reglas de unicidad, linea base original, validaciones, exportaciones controladas y sincronizacion en linea con Turso DB. Por eso, los riesgos residuales se concentran en decisiones de gobierno y operacion, no en errores tecnicos que pueden cubrirse con pruebas.
 
 | Riesgo | Causa | Impacto | Probabilidad | Arquitectura afectada | Mitigacion propuesta |
 |--------|-------|---------|--------------|------------------------|----------------------|
-| Importacion incorrecta de Excel | Estructuras de archivo no esperadas, celdas vacias o formatos cambiantes | Alto | Media | Import / Datos | Validar columnas requeridas, forward-fill controlado, pruebas con workbook de muestra y reporte de inconsistencias |
 | Baseline fijada por error | Un usuario podria marcar como original un contenido incorrecto | Alto | Baja | Original Baseline / Gobierno | Mantener confirmacion reforzada con texto `FIJAR ORIGINAL`, acknowledgement de reemplazo, backup y perfil guardado |
-| Exportaciones con colores incorrectos | La comparacion por codigo y hash podria clasificar mal cambios si el baseline esta mal fijado | Alto | Media | Export / Original Baseline | Bloquear exportacion sin baseline y mostrar resumen de diferencias antes de generar archivos |
 | Sincronizacion en linea inconsistente | La base local y Turso DB podrian quedar temporalmente desalineadas | Medio | Media | Persistencia / Sincronizacion | Definir estrategia de sync, reintentos, validacion de version y logs de sincronizacion |
 | Accesos o credenciales cloud mal controlados | Tokens, usuarios o permisos de Turso/OneDrive pueden quedar expuestos o sobredimensionados | Alto | Baja | Seguridad / Cloud | Usar permisos minimos, rotacion de credenciales, variables seguras y revision periodica de accesos |
 | Restauracion de snapshot equivocada | Restaurar reemplaza preguntas y lineamientos actuales | Alto | Baja | History / Persistencia | Usar confirmacion reforzada, mostrar fecha, autor y alcance del snapshot antes de restaurar |
@@ -106,13 +104,13 @@ La solucion nueva reduce la mayoria de riesgos del proceso anterior porque intro
 |------|------------------------|---------------------|------------------------|
 | Aplicacion local | Facilita edicion, importacion, revision, snapshots y exportacion | Fallos de validacion, uso incorrecto, errores silenciosos | Validaciones bloqueantes, logs locales, mensajes claros, pruebas por flujo |
 | Autenticacion y perfil | Identifica editor o supervisor responsable de acciones | Usuarios compartidos o acciones sin responsable claro | Perfil guardado, roles, confirmaciones reforzadas y registro de autor |
-| Importacion Excel | Convierte consolidados en estructura normalizada | Columnas faltantes, jerarquia incompleta, duplicados | Validar schema, forward-fill controlado, reporte de inconsistencias |
+| Importacion Excel | Convierte consolidados en estructura normalizada | Errores controlables por validacion y pruebas | Validar schema, forward-fill controlado, reporte de inconsistencias y pruebas automaticas |
 | Modelo CNA | Normaliza Factor, Caracteristica, Aspecto y preguntas | Deduplicacion incorrecta o codigos mal generados | Claves estables, revision visual, trazabilidad de registros omitidos |
 | Baseline original | Define referencia para comparar cambios | Fijar una version equivocada | Confirmacion `FIJAR ORIGINAL`, backup previo y bloqueo de exportacion sin baseline |
 | Base local libSQL/SQLite | Permite operar la app localmente y conservar estado editable | Corrupcion local o desalineacion temporal con la copia remota | Integridad transaccional, backups, validacion de version y sincronizacion controlada |
 | Turso DB online sync | Mantiene una copia remota estructurada y reduce dependencia del archivo local | Credenciales mal controladas o fallos temporales de sincronizacion | Permisos minimos, tokens seguros, reintentos, logs de sync y pruebas de recuperacion |
 | OneDrive / Microsoft Graph | Respalda exportaciones, evidencias y copias de seguridad | Exposicion accidental o temporales sincronizados | Carpeta definida, permisos minimos, reglas de sincronizacion y exclusion de temporales |
-| Exportacion | Genera instrumentos y reportes desde la base | Exportar version no aprobada o clasificar mal cambios | Validaciones previas, resumen de diferencias, version identificable |
+| Exportacion | Genera instrumentos y reportes desde la base | Exportar una version no aprobada | Validaciones previas, resumen de diferencias, version identificable |
 | Revision del proveedor | Registra estado, evidencia y observaciones por entrega | Evidencia dispersa o formatos no soportados | Checklist por instrumento/audiencia, rutas estandarizadas, reporte DOCX |
 
 ## Comparacion AS-IS vs TO-BE
@@ -133,18 +131,18 @@ La solucion nueva reduce la mayoria de riesgos del proceso anterior porque intro
 
 | Prioridad | Riesgo | Razon |
 |-----------|--------|-------|
-| 1 | Importacion incorrecta del consolidado | Puede crear preguntas o lineamientos mal normalizados desde el inicio del ciclo |
-| 2 | Baseline fijada incorrectamente | Todas las exportaciones con colores dependerian de una referencia equivocada |
-| 3 | Sincronizacion en linea inconsistente | Puede dejar diferencias temporales entre la base local y Turso DB |
-| 4 | Accesos o credenciales cloud mal controlados | Puede afectar la copia remota o permitir cambios no autorizados |
-| 5 | Restauracion equivocada de snapshot | Puede reemplazar el estado actual y generar perdida operativa |
+| 1 | Baseline fijada incorrectamente | Todas las comparaciones y exportaciones dependerian de una referencia equivocada |
+| 2 | Sincronizacion en linea inconsistente | Puede dejar diferencias temporales entre la base local y Turso DB |
+| 3 | Accesos o credenciales cloud mal controlados | Puede afectar la copia remota o permitir cambios no autorizados |
+| 4 | Restauracion equivocada de snapshot | Puede reemplazar el estado actual y generar perdida operativa |
+| 5 | Falta de monitoreo operativo | Puede retrasar la deteccion de errores de sincronizacion, exportacion o restauracion |
 
 ## Plan de mitigacion
 
 | Fase | Accion | Riesgo que reduce | Responsable sugerido |
 |------|--------|-------------------|----------------------|
 | Preparacion | Documentar donde vive la base local, como sincroniza con Turso DB y que carpetas usa OneDrive | Acceso sin control, confusion de versiones | Supervisor del proceso |
-| Importacion | Validar columnas, jerarquia CNA, duplicados y conteo de preguntas antes de aceptar el archivo | Importacion incorrecta, duplicidad, jerarquia incompleta | Analista responsable |
+| Importacion | Validar columnas, jerarquia CNA, duplicados y conteo de preguntas antes de aceptar el archivo | Errores controlables de importacion | Analista responsable |
 | Baseline | Mantener confirmacion reforzada, backup previo y perfil de quien fija la linea base | Baseline incorrecta, perdida de referencia | Supervisor del proceso |
 | Persistencia | Crear respaldos completos antes de fijar baseline, restaurar snapshots o ejecutar cambios masivos | Corrupcion local o restauracion incorrecta | Analista responsable |
 | Sincronizacion | Registrar eventos de sync con Turso DB y validar version local/remota antes de operaciones criticas | Desalineacion local-remota | Equipo tecnico |
@@ -159,8 +157,8 @@ La solucion nueva reduce la mayoria de riesgos del proceso anterior porque intro
 | Pregunta guia | Respuesta aplicada al negocio |
 |---------------|-------------------------------|
 | ¿Que activos son mas criticos? | Base local, Turso DB remoto, baseline original, banco de preguntas, jerarquia CNA, snapshots, exportaciones y evidencias de revision |
-| ¿Que puede salir mal? | Importacion incorrecta, baseline mal fijada, sincronizacion local-remota inconsistente, snapshot equivocado o exportacion con diferencias mal clasificadas |
-| ¿Que tan probable es? | Medio para errores de importacion y sincronizacion; bajo a medio para baseline incorrecta si existe confirmacion reforzada |
+| ¿Que puede salir mal? | Baseline mal fijada, sincronizacion local-remota inconsistente, snapshot equivocado, permisos cloud mal configurados o falta de monitoreo |
+| ¿Que tan probable es? | Bajo para errores de importacion si hay pruebas y validaciones; medio para sincronizacion; bajo a medio para baseline incorrecta si existe confirmacion reforzada |
 | ¿Cual seria el impacto? | Alto si afecta la linea base, la trazabilidad o la version enviada al proveedor |
 | ¿Que controles existen o estan propuestos? | Base local, Turso DB online sync, reglas de unicidad, baseline, snapshots, validaciones antes de exportar y revision del proveedor |
 | ¿Que controles faltan o deben reforzarse? | Logs de sincronizacion, pruebas automaticas, backups completos, permisos cloud y documentacion operativa |
@@ -172,7 +170,7 @@ La solucion nueva reduce la mayoria de riesgos del proceso anterior porque intro
 - Documentar claramente donde vive la base local, como sincroniza con Turso DB y que carpeta se usa para respaldos o evidencias.
 - Conservar la confirmacion reforzada para operaciones destructivas o de alto impacto.
 - Agregar logs locales y de sincronizacion para importacion, exportacion, restauracion de snapshots y errores de repositorio.
-- Probar cada importacion con validaciones de duplicados, jerarquia CNA y conteo de preguntas antes de permitir exportar.
+- Mantener la importacion como control de calidad automatizado: validaciones de duplicados, jerarquia CNA y conteo de preguntas antes de permitir exportar.
 - Revisar periodicamente permisos y credenciales de Turso DB, OneDrive y Microsoft Graph.
 - Mantener pruebas automaticas de importacion, deduplicacion, comparacion contra baseline y exportacion de instrumentos.
 
@@ -180,4 +178,4 @@ La solucion nueva reduce la mayoria de riesgos del proceso anterior porque intro
 
 El proceso anterior concentra riesgos en el trabajo manual con Excel, la falta de trazabilidad y la dependencia de personas. La solucion nueva corrige buena parte de esos problemas al mover la operacion hacia una base de datos, baseline inmutable, validaciones y exportaciones generadas desde el sistema.
 
-La incorporacion de sincronizacion online con Turso DB reduce el riesgo de depender solo de un archivo local, porque permite contar con una copia remota estructurada y facilita continuidad. Los riesgos restantes se concentran en gobernar bien la baseline, validar importaciones, proteger credenciales cloud y monitorear la sincronizacion.
+La incorporacion de sincronizacion online con Turso DB reduce el riesgo de depender solo de un archivo local, porque permite contar con una copia remota estructurada y facilita continuidad. Los riesgos restantes se concentran en gobernar bien la baseline, proteger credenciales cloud, restaurar snapshots con cuidado y monitorear la sincronizacion.
